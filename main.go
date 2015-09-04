@@ -22,23 +22,45 @@ func main() {
 	address := flag.String("address", "127.0.0.1", "The address to listen on")
 	path := flag.String("path", "", "Path to the document root")
 	port := flag.String("port", "8080", "The port to listen on")
+	tls := flag.Bool("tls", false, "Use TLS")
+	cert := flag.String("cert", "cert.pem", "The TLS certificate to use")
+	key := flag.String("key", "key.pem", "The TLS key to use.")
 	flag.Parse()
+
+	if *tls == true {
+		if *port == "8080" {
+			*port = "8443"
+		}
+	}
+
 	addrFmt := fmt.Sprintf("%s:%s", *address, *port)
 	mux := http.DefaultServeMux
 	mux.Handle("/", http.FileServer(http.Dir(*path)))
+
 	println("Starting server with document root: '" + filepath.Base(*path) + "'")
-	println("	at http://" + addrFmt + "/")
+
+	if *tls == true {
+		println("	at https://" + addrFmt + "/")
+	} else {
+		println("	at http://" + addrFmt + "/")
+	}
 	println("dserve", version, "built with go version: ", runtime.Version())
+
 	loggingHandler := NewApacheLoggingHandler(mux, os.Stderr)
 	server := &http.Server{
 		Addr:    addrFmt,
 		Handler: loggingHandler,
 	}
 
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatal(err)
+	if *tls == true {
+		if err := server.ListenAndServeTLS(*cert, *key); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		if err := server.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
 	}
-
 }
 
 type ApacheLogRecord struct {
