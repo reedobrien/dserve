@@ -37,7 +37,7 @@ Serve the current directory with TLS on localhost port 8443:
 
 `dserve -tls`
 
-You can generate certs suitable with th egenerate_cert.go tool in go's crypto/tls package:
+You can generate certs suitable with the generate_cert.go tool in go's crypto/tls package:
 
 `go run  /usr/local/go/src/crypto/tls/generate_cert.go --host localhost`
 
@@ -45,4 +45,4 @@ Run on all listening addresses:
 
 `dserve -address 0.0.0.0`
 
-Apache logging was originally lifted from [this gist](https://gist.github.com/cespare/3985516) and modifid slightly to add elapsed time.
+Apache logging was originally lifted from [this gist](https://gist.github.com/cespare/3985516) and modified slightly to add elapsed time.
