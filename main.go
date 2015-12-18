@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"flag"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ import (
 
 const (
 	apacheFormatPattern = "%s %.4f - [%s] \"%s\" %d %d %s %s\n"
-	version             = "1.0.0"
+	version             = "1.1.0"
 )
 
 func main() {
@@ -25,6 +26,7 @@ func main() {
 	tls := flag.Bool("tls", false, "Use TLS")
 	cert := flag.String("cert", "cert.pem", "The TLS certificate to use")
 	key := flag.String("key", "key.pem", "The TLS key to use.")
+	compress := flag.Bool("gz", false, "Use gzip compression.")
 	flag.Parse()
 
 	if *tls == true {
@@ -46,7 +48,12 @@ func main() {
 	}
 	println("dserve", version, "built with go version: ", runtime.Version())
 
-	loggingHandler := NewApacheLoggingHandler(mux, os.Stderr)
+	var loggingHandler http.Handler
+	if *compress {
+		loggingHandler = NewApacheLoggingHandler(NewGzipHandler(mux), os.Stderr)
+	} else {
+		loggingHandler = NewApacheLoggingHandler(mux, os.Stderr)
+	}
 	server := &http.Server{
 		Addr:    addrFmt,
 		Handler: loggingHandler,
@@ -61,6 +68,31 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+}
+
+// Borrowed and modified from a gist...need to find and attribute...
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (w gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
+func NewGzipHandler(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			handler.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Content-Encoding", "gzip")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+		gzw := gzipResponseWriter{Writer: gz, ResponseWriter: w}
+		handler.ServeHTTP(gzw, r)
+		return
+	})
 }
 
 type ApacheLogRecord struct {
