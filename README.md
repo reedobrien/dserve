@@ -41,6 +41,10 @@ You can generate certs suitable with the generate_cert.go tool in go's crypto/tl
 
 `go run  /usr/local/go/src/crypto/tls/generate_cert.go --host localhost`
 
+Alternatively you can generate a cert/key pair with openssl something like this:
+
+`openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes`
+
 Run on all listening addresses:
 
 `dserve -address 0.0.0.0`
